@@ -40,105 +40,116 @@ badGuys = [[640, 100]]
 health = 194
 
 t = 0
+gametime = 0
 running = True
+paused = False
 exitCode = 0
 
 while running:
-    screen.fill(0)
-
-    for x in range(width // grass.get_width() + 1):
-        for y in range(height // grass.get_height() + 1):
-            screen.blit(grass, (x * 100, y * 100))
-
     deltaTime = pygame.time.get_ticks() - t
     t = pygame.time.get_ticks()
 
-    if keys[0]:
-        playerPos[1] -= 0.4 * deltaTime
-    elif keys[2]:
-        playerPos[1] += 0.4 * deltaTime
-    if keys[1]:
-        playerPos[0] -= 0.4 * deltaTime
-    elif keys[3]:
-        playerPos[0] += 0.4 * deltaTime
+    if not paused:
+        screen.fill(0)
 
-    mousePos = pygame.mouse.get_pos()
-    angle = math.atan2(mousePos[1] - playerPos[1] - 32, mousePos[0] - playerPos[0] - 26)
-    playerRot = pygame.transform.rotate(player, 360 - math.degrees(angle))
-    playerPosCtr = (playerPos[0] - 26, playerPos[1] - 32)
+        for x in range(width // grass.get_width() + 1):
+            for y in range(height // grass.get_height() + 1):
+                screen.blit(grass, (x * 100, y * 100))
 
-    screen.blit(castle, (0, 30))
-    screen.blit(castle, (0, 135))
-    screen.blit(castle, (0, 240))
-    screen.blit(castle, (0, 345))
-    screen.blit(playerRot, playerPosCtr)
+        if keys[0]:
+            playerPos[1] -= 0.4 * deltaTime
+        elif keys[2]:
+            playerPos[1] += 0.4 * deltaTime
+        if keys[1]:
+            playerPos[0] -= 0.4 * deltaTime
+        elif keys[3]:
+            playerPos[0] += 0.4 * deltaTime
 
-    if badTimer == 0:
-        badGuys.append([640, random.randint(50, 430)])
-        badTimer = 100 - (badTimer1 * 2)
-        if badTimer1 < 27:
-            badTimer1 += 3
+        mousePos = pygame.mouse.get_pos()
+        angle = math.atan2(mousePos[1] - playerPos[1] - 32, mousePos[0] - playerPos[0] - 26)
+        playerRot = pygame.transform.rotate(player, 360 - math.degrees(angle))
+        playerPosCtr = (playerPos[0] - 26, playerPos[1] - 32)
 
-    badTimer -= 1
+        screen.blit(castle, (0, 30))
+        screen.blit(castle, (0, 135))
+        screen.blit(castle, (0, 240))
+        screen.blit(castle, (0, 345))
+        screen.blit(playerRot, playerPosCtr)
 
-    index = 0
-    for badGuy in badGuys:
-        badGuy[0] -= 0.2 * deltaTime
-        badRect = pygame.Rect(badGuyImg.get_rect())
-        badRect.top = badGuy[1]
-        badRect.left = badGuy[0]
-        if badRect.left < 64:
-            hit.play()
-            health -= random.randint(5, 20)
-            badGuys.pop(index)
-            index -= 1
+        if badTimer == 0:
+            badGuys.append([640, random.randint(50, 430)])
+            badTimer = 100 - (badTimer1 * 2)
+            if badTimer1 < 27:
+                badTimer1 += 3
+
+        badTimer -= 1
+
+        index = 0
+        for badGuy in badGuys:
+            badGuy[0] -= 0.2 * deltaTime
+            badRect = pygame.Rect(badGuyImg.get_rect())
+            badRect.top = badGuy[1]
+            badRect.left = badGuy[0]
+            if badRect.left < 64:
+                hit.play()
+                health -= random.randint(5, 20)
+                badGuys.pop(index)
+                index -= 1
+
+            index1 = 0
+            for bullet in arrows:
+                bullRect = pygame.Rect(arrow.get_rect())
+                bullRect.left = bullet[1]
+                bullRect.top = bullet[2]
+                if badRect.colliderect(bullRect):
+                    enemy.play()
+                    accuracy[0] += 1
+                    badGuys.pop(index)
+                    index -= 1
+                    arrows.pop(index1)
+                index1 += 1
+
+            index += 1
+
+        for badGuy in badGuys:
+            screen.blit(badGuyImg, badGuy)
 
         index1 = 0
         for bullet in arrows:
-            bullRect = pygame.Rect(arrow.get_rect())
-            bullRect.left = bullet[1]
-            bullRect.top = bullet[2]
-            if badRect.colliderect(bullRect):
-                enemy.play()
-                accuracy[0] += 1
-                badGuys.pop(index)
-                index -= 1
+            velX = math.cos(bullet[0]) * 10
+            velY = math.sin(bullet[0]) * 10
+            bullet[1] += velX
+            bullet[2] += velY
+            if bullet[1] < -64 or bullet[1] > 640 or bullet[2] < -64 or bullet[2] > 480:
                 arrows.pop(index1)
+                index1 -= 1
             index1 += 1
 
-        index += 1
+        for projectile in arrows:
+            arrow1 = pygame.transform.rotate(arrow, 360 - math.degrees(projectile[0]))
+            screen.blit(arrow1, (projectile[1], projectile[2]))
 
-    for badGuy in badGuys:
-        screen.blit(badGuyImg, badGuy)
+        font = pygame.font.Font(None, 24)
+        survivedText = font.render(str(gametime / 1000), True, (0, 0, 0))
+        textRect = survivedText.get_rect()
+        textRect.topright = [635, 5]
+        screen.blit(survivedText, textRect)
 
-    index1 = 0
-    for bullet in arrows:
-        velX = math.cos(bullet[0]) * 10
-        velY = math.sin(bullet[0]) * 10
-        bullet[1] += velX
-        bullet[2] += velY
-        if bullet[1] < -64 or bullet[1] > 640 or bullet[2] < -64 or bullet[2] > 480:
-            arrows.pop(index1)
-            index1 -= 1
-        index1 += 1
+        screen.blit(healthBar, (5, 5))
+        for health1 in range(health):
+            screen.blit(healthLeft, (health1 + 8, 8))
 
-    for projectile in arrows:
-        arrow1 = pygame.transform.rotate(arrow, 360 - math.degrees(projectile[0]))
-        screen.blit(arrow1, (projectile[1], projectile[2]))
-
-    font = pygame.font.Font(None, 24)
-    survivedText = font.render(str(t / 1000), True, (0, 0, 0))
-    textRect = survivedText.get_rect()
-    textRect.topright = [635, 5]
-    screen.blit(survivedText, textRect)
-
-    screen.blit(healthBar, (5, 5))
-    for health1 in range(health):
-        screen.blit(healthLeft, (health1 + 8, 8))
+        gametime += deltaTime
+    else:
+        font = pygame.font.Font(None, 36)
+        pauseText = font.render("Paused, press P to continue", True, (255, 0, 0))
+        pauseTextRect = pauseText.get_rect()
+        pauseTextRect.center = [320, 240]
+        screen.blit(pauseText, pauseTextRect)
 
     pygame.display.flip()
 
-    if t > 90000:
+    if gametime > 90000:
         running = False
         exitCode = 1
 
@@ -162,6 +173,9 @@ while running:
                 keys[2] = True
             elif event.key == pygame.K_d:
                 keys[3] = True
+
+            if event.key == pygame.K_p:
+                paused = not paused
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
