@@ -11,8 +11,7 @@ player = pygame.image.load("resources/images/dude.png")
 grass = pygame.image.load("resources/images/grass.png")
 castle = pygame.image.load("resources/images/castle.png")
 arrow = pygame.image.load("resources/images/bullet.png")
-badGuyImg1 = pygame.image.load("resources/images/badguy.png")
-badGuyImg = badGuyImg1
+badGuyImg = pygame.image.load("resources/images/badguy.png")
 healthBar = pygame.image.load("resources/images/healthbar.png")
 healthLeft = pygame.image.load("resources/images/health.png")
 gameOver = pygame.image.load("resources/images/gameover.png")
@@ -40,7 +39,6 @@ badGuys = [[640, 100]]
 health = 194
 
 t = 0
-gametime = 0
 running = True
 paused = False
 exitCode = 0
@@ -65,24 +63,25 @@ while running:
         elif keys[3]:
             playerPos[0] += 0.4 * deltaTime
 
+        screen.blit(castle, (0, 30))
+        screen.blit(castle, (0, 135))
+        screen.blit(castle, (0, 240))
+        screen.blit(castle, (0, 345))
+
         mousePos = pygame.mouse.get_pos()
         angle = math.atan2(mousePos[1] - playerPos[1] - 32, mousePos[0] - playerPos[0] - 26)
         playerRot = pygame.transform.rotate(player, 360 - math.degrees(angle))
         playerPosCtr = (playerPos[0] - 26, playerPos[1] - 32)
 
-        screen.blit(castle, (0, 30))
-        screen.blit(castle, (0, 135))
-        screen.blit(castle, (0, 240))
-        screen.blit(castle, (0, 345))
         screen.blit(playerRot, playerPosCtr)
 
-        if badTimer == 0:
+        if badTimer <= 0:
             badGuys.append([640, random.randint(50, 430)])
             badTimer = 100 - (badTimer1 * 2)
             if badTimer1 < 27:
                 badTimer1 += 3
 
-        badTimer -= 1
+        badTimer -= deltaTime / 10.0
 
         index = 0
         for badGuy in badGuys:
@@ -107,6 +106,7 @@ while running:
                     badGuys.pop(index)
                     index -= 1
                     arrows.pop(index1)
+                    index1 -= 1
                 index1 += 1
 
             index += 1
@@ -116,8 +116,8 @@ while running:
 
         index1 = 0
         for bullet in arrows:
-            velX = math.cos(bullet[0]) * 10
-            velY = math.sin(bullet[0]) * 10
+            velX = math.cos(bullet[0]) * deltaTime
+            velY = math.sin(bullet[0]) * deltaTime
             bullet[1] += velX
             bullet[2] += velY
             if bullet[1] < -64 or bullet[1] > 640 or bullet[2] < -64 or bullet[2] > 480:
@@ -126,11 +126,11 @@ while running:
             index1 += 1
 
         for projectile in arrows:
-            arrow1 = pygame.transform.rotate(arrow, 360 - math.degrees(projectile[0]))
+            arrow1 = pygame.transform.rotate(arrow, -math.degrees(projectile[0]))
             screen.blit(arrow1, (projectile[1], projectile[2]))
 
         font = pygame.font.Font(None, 24)
-        survivedText = font.render(str(gametime / 1000), True, (0, 0, 0))
+        survivedText = font.render(str(t / 1000), True, (0, 0, 0))
         textRect = survivedText.get_rect()
         textRect.topright = [635, 5]
         screen.blit(survivedText, textRect)
@@ -138,8 +138,6 @@ while running:
         screen.blit(healthBar, (5, 5))
         for health1 in range(health):
             screen.blit(healthLeft, (health1 + 8, 8))
-
-        gametime += deltaTime
     else:
         font = pygame.font.Font(None, 36)
         pauseText = font.render("Paused, press P to continue", True, (255, 0, 0))
@@ -147,9 +145,9 @@ while running:
         pauseTextRect.center = [320, 240]
         screen.blit(pauseText, pauseTextRect)
 
-    pygame.display.flip()
+    pygame.display.update()
 
-    if gametime > 90000:
+    if t > 90000:
         running = False
         exitCode = 1
 
@@ -187,7 +185,7 @@ while running:
             elif event.key == pygame.K_d:
                 keys[3] = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and not paused:
             shoot.play()
             accuracy[1] += 1
             arrows.append([math.atan2(mousePos[1] - (playerPosCtr[1] + 32), mousePos[0] - (playerPosCtr[0] + 26)), playerPosCtr[0] + 32, playerPosCtr[1] + 32])
@@ -214,9 +212,9 @@ elif exitCode == 1:
     textRect.centery = screen.get_rect().centery + 24
     screen.blit(youWin, (0, 0))
     screen.blit(text, textRect)
-while 1:
+
+while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit(0)
-    pygame.display.flip()
